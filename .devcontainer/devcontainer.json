@@ -1,0 +1,66 @@
+{
+  "name": "CIRCT Development Environment",
+
+  // Use a pre-built C++ dev container image with Clang, CMake, and essential tools.
+  "image": "mcr.microsoft.com/devcontainers/cpp:1-debian-12",
+
+  "customizations": {
+    "vscode": {
+      // Recommended extensions for C++, CMake, and MLIR development.
+      "extensions": [
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-mlir",
+        "ms-python.python"
+      ]
+    }
+  },
+
+  // This command runs after the container is created. It sets up the entire build environment.
+  "postCreateCommand": "bash -c 'set -e && \
+    echo \"Updating package lists...\" && \
+    sudo apt-get update && \
+    \
+    echo \"Installing build dependencies...\" && \
+    sudo apt-get install -y ninja-build python3-pip && \
+    \
+    echo \"Initializing Git submodules (fetching LLVM)...\" && \
+    git submodule update --init --recursive && \
+    \
+    echo \"Installing Python dependencies...\" && \
+    pip install -r frontends/PyCDE/python/requirements.txt && \
+    \
+    echo \"Creating and configuring the CMake build directory...\" && \
+    cmake \\
+      -S llvm \\
+      -B build \\
+      -G Ninja \\
+      -DCMAKE_BUILD_TYPE=Debug \\
+      -DLLVM_ENABLE_ASSERTIONS=ON \\
+      -DLLVM_TARGETS_TO_BUILD=\"X86;AArch64;RISCV\" \\
+      -DCIRCT_DIALECTS=\"Arc;Calyx;Comb;DC;ESI;Emit;FIRRTL;FSM;HW;HWArith;Handshake;Interop;Kanagawa;LLHD;LTL;MSFT;Moore;OM;Pipeline;RTG;SV;Seq;Sim;Synth;SystemC;Verif\" \\
+      -DCIRCT_FRONTENDS=\"PyCDE\" \\
+      -DLLVM_ENABLE_PROJECTS=\"mlir\" \\
+      -DMLIR_ENABLE_BINDINGS_PYTHON=ON && \
+    \
+    echo \"-----------------------------------------------------\" && \
+    echo \"✅ CIRCT development environment is ready!\" && \
+    echo \"\" && \
+    echo \"To build a specific part (e.g., Comb dialect tests):\" && \
+    echo \"  cd build\" && \
+    echo \"  ninja check-circt-dialect-comb\" && \
+    echo \"-----------------------------------------------------\" \
+  '",
+
+  // Tell the CMake Tools extension where the source and build directories are.
+  "settings": {
+    "cmake.sourceDirectory": "${containerWorkspaceFolder}/llvm",
+    "cmake.buildDirectory": "${containerWorkspaceFolder}/build"
+  },
+
+  // Forward ports if you run any web-based tools.
+  // "forwardPorts": [],
+
+  // Run as a non-root user.
+  "remoteUser": "vscode"
+}
